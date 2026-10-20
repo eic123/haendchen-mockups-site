@@ -38,7 +38,10 @@
   var BUILD = "48fb650f69df", ITER = 600000, CACHE = "site-" + BUILD, APP = new URL("app/", location.href).href;
   var f = document.getElementById("f"), pw = document.getElementById("pw"), go = document.getElementById("go"), msg = document.getElementById("msg");
   function say(t, err) { msg.textContent = t; msg.className = "msg" + (err ? " err" : ""); }
-  function enter() { location.href = APP + "index.html" + location.hash; }
+  // ?to=<path> comes from 404.html (deep link opened before unlocking); relative paths only
+  var to = new URLSearchParams(location.search).get("to") || "";
+  if (!/^[A-Za-z0-9_./-]+$/.test(to) || to.indexOf("..") >= 0) to = "index.html";
+  function enter() { location.href = APP + to + location.hash; }
 
   if (!("serviceWorker" in navigator) || !window.crypto || !crypto.subtle || !window.caches) {
     say("Dieser Browser wird nicht unterstützt. Bitte einen aktuellen Chrome, Edge, Firefox oder Safari verwenden (kein privates Fenster in Firefox).", true);
