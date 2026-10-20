@@ -6,7 +6,7 @@
 // worker is installed. Send it to the password page and remember where it wanted to go.
 (function () {
   var path = location.pathname, i = path.indexOf("/app/");
-  var base = i >= 0 ? path.slice(0, i + 1) : "/haendchen-mockups-site/";
+  var base = i >= 0 ? path.slice(0, i + 1) : "/";
   var to = i >= 0 ? path.slice(i + 5) : "";
   location.replace(base + (to ? "?to=" + encodeURIComponent(to) : "") + location.hash);
 })();
