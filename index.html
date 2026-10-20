@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Geschützte Vorschau</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg: #FBF7EE; --card: #fff; --text: #12324F; --muted: #4D6073; --accent: #1F8FB0; --line: #E3DACB; --err: #B3261E; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0E1C29; --card: #15283A; --text: #EAF2F8; --muted: #A9BBCB; --line: #2A4258; --err: #FF8A80; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  form { width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 28px 24px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p { margin: 0 0 20px; color: var(--muted); font-size: 15px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  input { width: 100%; font: inherit; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { margin-top: 16px; width: 100%; font: inherit; font-weight: 700; padding: 12px; border: 0; border-radius: 12px; background: var(--accent); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: progress; }
+  .msg { min-height: 1.5em; margin: 12px 0 0; font-size: 14px; }
+  .msg.err { color: var(--err); }
+</style>
+</head>
+<body>
+<form id="f" autocomplete="off">
+  <h1>Geschützte Vorschau</h1>
+  <p>Bitte das Passwort eingeben, um die Mockups zu öffnen.</p>
+  <label for="pw">Passwort</label>
+  <input id="pw" type="password" required autofocus>
+  <button id="go" type="submit">Öffnen</button>
+  <div id="msg" class="msg" role="status"></div>
+</form>
+<script>
+(function () {
+  var BUILD = "48fb650f69df", ITER = 600000, CACHE = "site-" + BUILD, APP = new URL("app/", location.href).href;
+  var f = document.getElementById("f"), pw = document.getElementById("pw"), go = document.getElementById("go"), msg = document.getElementById("msg");
+  function say(t, err) { msg.textContent = t; msg.className = "msg" + (err ? " err" : ""); }
+  function enter() { location.href = APP + "index.html" + location.hash; }
+
+  if (!("serviceWorker" in navigator) || !window.crypto || !crypto.subtle || !window.caches) {
+    say("Dieser Browser wird nicht unterstützt. Bitte einen aktuellen Chrome, Edge, Firefox oder Safari verwenden (kein privates Fenster in Firefox).", true);
+    go.disabled = true; return;
+  }
+  var ready = navigator.serviceWorker.register("sw.js").then(function () { return navigator.serviceWorker.ready; });
+
+  // already unlocked in this browser with the current build -> straight in
+  ready.then(function () { return caches.has(CACHE); }).then(function (has) { if (has) enter(); });
+
+  f.addEventListener("submit", function (e) {
+    e.preventDefault();
+    go.disabled = true; say("Wird entschlüsselt …");
+    var enc = new TextEncoder();
+    Promise.all([fetch("site.bin", { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("load"); return r.arrayBuffer();
+    }), ready]).then(function (res) {
+      var buf = new Uint8Array(res[0]), salt = buf.slice(0, 16), iv = buf.slice(16, 28), ct = buf.slice(28);
+      return crypto.subtle.importKey("raw", enc.encode(pw.value), "PBKDF2", false, ["deriveKey"]).then(function (base) {
+        return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: ITER, hash: "SHA-256" }, base,
+          { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+      }).then(function (key) {
+        return crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, ct).catch(function () { throw new Error("pw"); });
+      });
+    }).then(function (plain) {
+      var all = new Uint8Array(plain), dv = new DataView(plain), mlen = dv.getUint32(0);
+      var manifest = JSON.parse(new TextDecoder().decode(all.subarray(4, 4 + mlen))), base = 4 + mlen;
+      return caches.keys().then(function (keys) {
+        return Promise.all(keys.filter(function (k) { return k.indexOf("site-") === 0 && k !== CACHE; })
+          .map(function (k) { return caches.delete(k); }));
+      }).then(function () { return caches.open(CACHE); }).then(function (cache) {
+        return Promise.all(Object.keys(manifest).map(function (p) {
+          var m = manifest[p], body = all.slice(base + m[0], base + m[0] + m[1]);
+          return cache.put(APP + p, new Response(body, { headers: { "Content-Type": m[2], "Content-Length": String(m[1]) } }));
+        }));
+      });
+    }).then(enter).catch(function (err) {
+      go.disabled = false;
+      if (err && err.message === "pw") { say("Das Passwort stimmt nicht.", true); pw.select(); }
+      else say("Die Seite konnte nicht geladen werden. Bitte neu laden und erneut versuchen.", true);
+    });
+  });
+})();
+</script>
+</body>
+</html>
