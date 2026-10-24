@@ -1,5 +1,5 @@
 // Serves the decrypted mockups (put into Cache Storage by index.html) under ./app/.
-var BUILD = "253682f5ea5b", CACHE = "site-" + BUILD;
+var BUILD = "065b6c4e3df5", CACHE = "site-" + BUILD;
 var APP = new URL("app/", self.registration.scope).href;
 self.addEventListener("install", function () { self.skipWaiting(); });
 self.addEventListener("activate", function (e) { e.waitUntil(self.clients.claim()); });
