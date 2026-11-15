@@ -22,9 +22,13 @@
   button:disabled { opacity: .6; cursor: progress; }
   .msg { min-height: 1.5em; margin: 12px 0 0; font-size: 14px; }
   .msg.err { color: var(--err); }
+  .box { width: 100%; max-width: 380px; }
+  .legal { margin: 14px 0 0; text-align: center; font-size: 14px; }
+  .legal a { color: var(--muted); }
 </style>
 </head>
 <body>
+<div class="box">
 <form id="f" autocomplete="off">
   <h1>Geschützte Vorschau</h1>
   <p>Bitte das Passwort eingeben, um die Mockups zu öffnen.</p>
@@ -33,9 +37,11 @@
   <button id="go" type="submit">Öffnen</button>
   <div id="msg" class="msg" role="status"></div>
 </form>
+<p class="legal"><a href="impressum.html">Impressum</a></p>
+</div>
 <script>
 (function () {
-  var BUILD = "d0d4f55ab1fd", ITER = 600000, CACHE = "site-" + BUILD, APP = new URL("app/", location.href).href;
+  var BUILD = "2addc9596e53", ITER = 600000, CACHE = "site-" + BUILD, APP = new URL("app/", location.href).href;
   var f = document.getElementById("f"), pw = document.getElementById("pw"), go = document.getElementById("go"), msg = document.getElementById("msg");
   function say(t, err) { msg.textContent = t; msg.className = "msg" + (err ? " err" : ""); }
   // ?to=<path> comes from 404.html (deep link opened before unlocking); relative paths only
